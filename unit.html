@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Amigo Secreto</title>
+    <style>
+
+        .edit-icon, .delete-icon {
+    cursor: pointer;
+    margin: 0 5px;
+}
+
+/* Estilizações adicionais conforme necessário */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f7f7f7;
+    font-size: 16px; /* Tamanho de fonte base para mobile */
+}
+
+.main-container {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+    text-align: center;
+}
+
+h1{
+    color: #333;
+    margin: 20px 0;
+    font-size: 50px; /* Fonte maior para títulos em mobile */
+}
+
+
+h2 {
+    color: #333;
+    margin: 20px 0;
+    font-size: 24px; /* Fonte maior para títulos em mobile */
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.success-message {
+    color: #28a745; /* Cor verde para sucesso */
+    background-color: #dff0d8;
+    border-color: #d4edda;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    display: none; /* Inicialmente oculto */
+}
+
+.success-message.hidden {
+    display: none;
+}
+
+.success-message.visible {
+    display: block; /* Mostrar quando necessário */
+}
+
+
+input[type="text"] {
+    padding: 15px;
+    margin-bottom: 10px; /* Espaço entre o input e o botão */
+    width: 80%; /* Largura ajustada para mobile */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 30px; /* Fonte maior para melhor leitura */
+}
+
+button {
+    padding: 15px 25px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 30px; /* Fonte maior para melhor leitura */
+    width: 50%; /* Largura ajustada para mobile */
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th, td {
+    text-align: center;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    font-size: calc(4vw + 4px); /* Ajuste dinâmico do tamanho da fonte com base na largura da tela */
+    max-font-size: 18px; /* Define um tamanho máximo para a fonte */
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+tr:nth-child(odd) {
+    background-color: #f2f2f2;
+}
+
+tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+@media (min-width: 600px) {
+    th, td {
+        font-size: calc(2vw + 8px); /* Ajuste da fonte para telas maiores, como tablets */
+    }
+}
+
+@media (min-width: 1024px) {
+    th, td {
+        font-size: calc(1vw + 10px); /* Ajuste da fonte para telas ainda maiores, como desktops */
+    }
+}
+
+
+@media (max-width: 600px) {
+    /* Estilos para tablets e desktops */
+    .input-group {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    input[type="text"] {
+        margin-right: 10px;
+        margin-bottom: 0; /* Remover margem inferior */
+        width: calc(100% - 150px); /* Ajuste da largura */
+    }
+
+    button {
+        width: auto; /* Largura padrão para botão */
+    }
+    </style>
+</head>
+<body>
+
+<div class="participants-section">
+    <h2>Participantes</h2>
+    <table id="participantsTable">
+        <tr>
+            <th>Nome</th>
+            <th>Data e Hora</th>
+            <th>Ações</th>
+        </tr>
+        <!-- Os participantes serão inseridos aqui -->
+    </table>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+
+ const firebaseConfig = {
+  apiKey: "AIzaSyDXOqm52mwBr4RH3KuP5MrGeyYg1qQy27M",
+  authDomain: "amigo-secreto-8b3ae.firebaseapp.com",
+  databaseURL: "https://amigo-secreto-8b3ae-default-rtdb.firebaseio.com",
+  projectId: "amigo-secreto-8b3ae",
+  storageBucket: "amigo-secreto-8b3ae.appspot.com",
+  messagingSenderId: "133611460498",
+  appId: "1:133611460498:web:2641aafc8c318aaa4d134b"
+};
+
+// Inicializa o Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+// Função para editar um participante
+function editParticipant(participantKey, newName) {
+    // Atualiza o participante no Firebase
+    const updates = {};
+    updates['/participants/' + participantKey + '/nome'] = newName;
+    update(ref(database, 'participants/' + participantKey), updates)
+        .then(() => {
+            console.log("Dados atualizados com sucesso!");
+            // Atualiza a interface do usuário imediatamente
+            updateParticipantRow(participantKey, newName);
+        }).catch((error) => {
+            console.error("Erro ao atualizar dados:", error);
+        });
+}
+
+function updateParticipantRow(participantKey, newName) {
+    // Encontra a célula com o nome do participante e atualiza o texto
+    const participantRows = document.querySelectorAll(`[data-key="${participantKey}"]`);
+    participantRows.forEach(row => {
+        const nameCell = row.parentNode.parentNode.cells[0]; // Assume que a célula do nome é a primeira
+        nameCell.textContent = newName;
+    });
+}
+function testWrite(participantKey) {
+    const database = getDatabase();
+    set(ref(database, '/participants/' + participantKey + '/testField'), "testValue").then(() => {
+        console.log("Campo de teste atualizado com sucesso!");
+    }).catch((error) => {
+        console.error("Erro ao atualizar o campo de teste:", error);
+    });
+
+        const editingRow = document.querySelector(`[data-key="${participantKey}"]`).parentNode.parentNode;
+    const nameCell = editingRow.querySelector("td:first-child");
+    nameCell.textContent = newName;
+}
+
+
+// Função para excluir um participante
+function deleteParticipant(participantKey) {
+    remove(ref(database, '/participants/' + participantKey)).then(() => {
+        console.log("Participante removido com sucesso!");
+    }).catch((error) => {
+        console.error("Erro ao remover participante:", error);
+    });
+}
+
+function addEventListeners() {
+    document.querySelectorAll('.edit-icon').forEach(element => {
+        element.addEventListener('click', function() {
+            const participantKey = this.getAttribute('data-key');
+            const newName = prompt('Novo nome para: ' + (participantKey || ''));
+            if (newName) {
+                editParticipant(participantKey, newName);
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-icon').forEach(element => {
+        element.addEventListener('click', function() {
+            const participantKey = this.getAttribute('data-key');
+            if (confirm('Tem certeza que deseja remover o participante?')) {
+                deleteParticipant(participantKey);
+            }
+        });
+    });
+}
+
+
+
+
+onValue(ref(database, 'participants'), (snapshot) => {
+    const participantsTable = document.getElementById('participantsTable');
+    
+    participantsTable.innerHTML = `
+        <tr>
+            <th>Nome</th>
+            <th>Data e Hora</th>
+            <th>Ações</th>
+        </tr>
+    `;
+    
+    snapshot.forEach((childSnapshot) => {
+        const childData = childSnapshot.val();
+        const row = participantsTable.insertRow(-1);
+        const cellName = row.insertCell(0);
+        const cellDate = row.insertCell(1);
+        const cellActions = row.insertCell(2);
+        
+        cellName.textContent = childData.nome;
+        cellDate.textContent = formatDateTime(childData.data_hora);
+        
+        cellActions.innerHTML = `
+    <span class="edit-icon" data-key="${childSnapshot.key}">✏️</span>
+    <span class="delete-icon" data-key="${childSnapshot.key}">❌</span>`;
+
+    });
+
+        addEventListeners();
+
+});
+
+// Formata a data e hora para um formato mais legível (24 horas)
+function formatDateTime(isoString) {
+  const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+  return new Date(isoString).toLocaleDateString('pt-BR', options);
+}
+
+
+
+
+</script>
+
+</body>
+</html>
